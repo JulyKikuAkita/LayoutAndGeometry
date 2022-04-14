@@ -15,100 +15,47 @@ import SwiftUI
 // applying modifiers creates new views rather than just modifying existing views in-place.
 struct ContentView: View {
     var body: some View {
-        AlignmentView()
-        AlignmentGuideView()
-        simpleAlignmentView()
-        LayoutView()
-    }
-}
+        HStack(alignment: .midAccountAndName) {
+            VStack {
+                Text("@twostraws")
+                    .alignmentGuide(.midAccountAndName) { d in d[VerticalAlignment.center]
 
-struct AlignmentGuideView: View {
-    var body: some View {
-        VStack {
-            VStack(alignment: .leading) {
-                       Text("alignment: .leading")
-                       Text("This is a longer line of text")
+                    }
+                Image("nanachi1")
+                   .resizable()
+                   .frame(width: 64, height: 64)
+                }
+
+           VStack {
+               Text("Full name:")
+               Text("PAUL HUDSON")
+                   .alignmentGuide(.midAccountAndName) {
+                       d in d[VerticalAlignment.center]
                    }
-                   .background(.red)
-                   .frame(width: 300, height: 300)
-                   .background(.blue)
-
-            // same as above
-            VStack(alignment: .leading) {
-                Text("alignment: .leading")
-                    .alignmentGuide(.leading) { d in d[.leading] }
-                Text("Rewrite in alignmentGuide")
-            }
-            .padding()
-
-            // alignment guide to use the view’s trailing edge for its leading alignment guide
-            VStack(alignment: .leading) {
-                Text("alignment: .leading")
-                    .alignmentGuide(.leading) { d in d[.trailing] }
-                Text("Rewrite in alignmentGuide")
-            }
-        }
-
-    }
-}
-
-struct AlignmentView: View {
-    var body: some View {
-        VStack(alignment: .leading) {
-            ForEach(0..<10) { position in
-                Text("Number \(position)")
-                    .alignmentGuide(.leading) { _ in CGFloat(position) * -10 }
-            }
-        }
-        .background(.red)
-        .frame(width: 400, height: 400)
-        .background(.gray)
-    }
-}
-
-struct simpleAlignmentView: View {
-    var body: some View {
-        VStack {
-            Text("Live long and prosper")
-                .frame(width: 300, height: 300, alignment: .topLeading)
-
-            HStack(alignment: .bottom) {
-                Text("Live")
-                    .font(.caption)
-                Text("long")
-                Text("and")
-                    .font(.title)
-                Text("prosper")
-                    .font(.largeTitle)
-            }
-
-            HStack(alignment: .lastTextBaseline) { //try .bottom
-                Text("Live")
-                    .font(.caption)
-                Text("long")
-                Text("and")
-                    .font(.title)
-                Text("prosper")
-                    .font(.largeTitle)
-            }
+                   .font(.largeTitle)
+           }
         }
     }
 }
 
-struct LayoutView: View {
-    var body: some View {
-        Group { // the text view becomes a child of its background
-            Text("Layout Neutral")
-                .background(.green) // layout neutral
-                .padding(20)
+/*
+ define a custom layout guide. This should be an extension on either VerticalAlignment or HorizontalAlignment, and be a custom type that conforms to the AlignmentID protocol.
 
-            Text("Layout Neutral")
-                .padding(20)
-                .background(.green) //layout neutral
+ it’s actually a good idea to implement this as an enum instead of struct. The AlignmentID protocol has only one requirement, which is that the conforming type must provide a static defaultValue(in:) method that accepts a ViewDimensions object and returns a CGFloat specifying how a view should be aligned if it doesn’t have an alignmentGuide() modifier. You’ll be given the existing ViewDimensions object for the view, so you can either pick one of those for your default or use a hard-coded value.
 
-            Color.blue
+ we just created a new struct called MidAccountAndName, which means we could (if we wanted) create an instance of that struct even though doing so doesn’t make sense because it doesn’t have any functionality. If you replace struct MidAccountAndName with enum MidAccountAndName then you can’t make an instance of it any more – it becomes clearer that this thing exists only to house some functionality.
+
+ usage: set midAccountAndName as the alignment for your stack, then use alignmentGuide() to activate it on any views you want to align together. This is only a guide: it helps you align views along a single line, but doesn’t say how they should be aligned. This means you still need to provide the closure to alignmentGuide() that positions the views along that guide as you want.
+
+ */
+extension VerticalAlignment {
+    enum MidAccountAndName: AlignmentID { //could be a struct
+        static func defaultValue(in d: ViewDimensions) -> CGFloat {
+            d[.top]
         }
     }
+
+    static let midAccountAndName = VerticalAlignment(MidAccountAndName.self)
 }
 
 struct ContentView_Previews: PreviewProvider {
