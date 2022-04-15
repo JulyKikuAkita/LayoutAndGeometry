@@ -9,31 +9,55 @@
  -Based on that information, the child then chooses its own size and the parent must respect that choice.
  - The parent then positions the child in its coordinate space.
  - Behind the scenes, SwiftUI performs a fourth step: although it stores positions and sizes as floating-point numbers, when it comes to rendering SwiftUI rounds off any pixels to their nearest values so our graphics remain sharp.
+
+ offset vs position
+ When we use the offset() modifier, we’re changing the location where a view should be rendered without actually changing its underlying geometry. This means when we apply background() afterwards it uses the original position of the text, not its offset.
  */
 import SwiftUI
 
 // applying modifiers creates new views rather than just modifying existing views in-place.
+
 struct ContentView: View {
     var body: some View {
-        HStack(alignment: .midAccountAndName) {
+        VStack {
             VStack {
-                Text("@twostraws")
-                    .alignmentGuide(.midAccountAndName) { d in d[VerticalAlignment.center]
+                Text("offset1")
+                    .offset(x: 100, y: 100)
+                    .background(.green)
 
+                Text("offset2")
+                    .background(.green)
+                    .offset(x: 100, y: 100)
+
+                Text("Position1")
+                    .background(.gray)
+                    .position(x: 100, y: 100)
+
+                Text("Position2")
+                    .position(x: 100, y: 100)
+                    .background(.gray)
+            }
+
+            HStack(alignment: .midAccountAndName) {
+                VStack {
+                    Text("@twostraws")
+                        .alignmentGuide(.midAccountAndName) { d in d[VerticalAlignment.center]
+
+                        }
+                    Image("nanachi1")
+                       .resizable()
+                       .frame(width: 64, height: 64)
                     }
-                Image("nanachi1")
-                   .resizable()
-                   .frame(width: 64, height: 64)
-                }
 
-           VStack {
-               Text("Full name:")
-               Text("PAUL HUDSON")
-                   .alignmentGuide(.midAccountAndName) {
-                       d in d[VerticalAlignment.center]
-                   }
-                   .font(.largeTitle)
-           }
+               VStack {
+                   Text("Full name:")
+                   Text("PAUL HUDSON")
+                       .alignmentGuide(.midAccountAndName) {
+                           d in d[VerticalAlignment.center]
+                       }
+                       .font(.largeTitle)
+               }
+            }
         }
     }
 }
