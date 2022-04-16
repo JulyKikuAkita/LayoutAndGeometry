@@ -10,76 +10,69 @@
  - The parent then positions the child in its coordinate space.
  - Behind the scenes, SwiftUI performs a fourth step: although it stores positions and sizes as floating-point numbers, when it comes to rendering SwiftUI rounds off any pixels to their nearest values so our graphics remain sharp.
 
- offset vs position
- When we use the offset() modifier, we’re changing the location where a view should be rendered without actually changing its underlying geometry. This means when we apply background() afterwards it uses the original position of the text, not its offset.
+ When it comes to reading the frame of a view, GeometryProxy provides a frame(in:) method rather than simple properties. This is because the concept of a “frame” includes X and Y coordinates, which don’t make any sense in isolation – do you want the view’s absolute X and Y coordinates, or their X and Y coordinates compared to their parent?
+
+ SwiftUI calls these options coordinate spaces, and those two in particular are called the global space (measuring our view’s frame relative to the whole screen), and the local space (measuring our view’s frame relative to its parent). We can also create custom coordinate spaces by attaching the coordinateSpace() modifier to a view – any children of that can then read its frame relative to that coordinate space.
  */
 import SwiftUI
 
-// applying modifiers creates new views rather than just modifying existing views in-place.
-
-struct ContentView: View {
+struct OuterView: View {
     var body: some View {
         VStack {
-            VStack {
-                Text("offset1")
-                    .offset(x: 100, y: 100)
-                    .background(.green)
+            Text("Top")
+            InnerView()
+                .background(.green)
+            Text("Bottom")
+        }
+    }
+}
 
-                Text("offset2")
-                    .background(.green)
-                    .offset(x: 100, y: 100)
-
-                Text("Position1")
-                    .background(.gray)
-                    .position(x: 100, y: 100)
-
-                Text("Position2")
-                    .position(x: 100, y: 100)
-                    .background(.gray)
-            }
-
-            HStack(alignment: .midAccountAndName) {
-                VStack {
-                    Text("@twostraws")
-                        .alignmentGuide(.midAccountAndName) { d in d[VerticalAlignment.center]
-
-                        }
-                    Image("nanachi1")
-                       .resizable()
-                       .frame(width: 64, height: 64)
+struct InnerView: View {
+    var body: some View {
+        HStack {
+            Text("Left")
+            GeometryReader { geo in
+                Text("Center")
+                    .background(.blue)
+                    .onTapGesture {
+                        print("Global center: \(geo.frame(in: .global).midX) x \(geo.frame(in: .global).midY)")
+                        print("Custom center: \(geo.frame(in: .named("Custom")).midX) x \(geo.frame(in: .named("Custom")).midY)")
+                        print("Local center: \(geo.frame(in: .local).midX) x \(geo.frame(in: .local).midY)")
                     }
-
-               VStack {
-                   Text("Full name:")
-                   Text("PAUL HUDSON")
-                       .alignmentGuide(.midAccountAndName) {
-                           d in d[VerticalAlignment.center]
-                       }
-                       .font(.largeTitle)
-               }
             }
+            .background(.orange)
+            Text("Right")
         }
     }
 }
 
 /*
- define a custom layout guide. This should be an extension on either VerticalAlignment or HorizontalAlignment, and be a custom type that conforms to the AlignmentID protocol.
+ The output you get when that code runs depends on the device you’re using, but here’s what I got:
+ Global center: 189.83 x 430.60
+ Custom center: 189.83 x 383.60
+ Local center: 152.17 x 350.96
 
- it’s actually a good idea to implement this as an enum instead of struct. The AlignmentID protocol has only one requirement, which is that the conforming type must provide a static defaultValue(in:) method that accepts a ViewDimensions object and returns a CGFloat specifying how a view should be aligned if it doesn’t have an alignmentGuide() modifier. You’ll be given the existing ViewDimensions object for the view, so you can either pick one of those for your default or use a hard-coded value.
+ Those sizes are mostly different, so hopefully you can see the full range of how these frame work:
 
- we just created a new struct called MidAccountAndName, which means we could (if we wanted) create an instance of that struct even though doing so doesn’t make sense because it doesn’t have any functionality. If you replace struct MidAccountAndName with enum MidAccountAndName then you can’t make an instance of it any more – it becomes clearer that this thing exists only to house some functionality.
+ A global center X of 189 means that the center of the geometry reader is 189 points from the left edge of the screen.
+ A global center Y of 430 means the center of the text view is 430 points from the top edge of the screen. This isn’t dead in the center of the screen because there is more safe area at the top than the bottom.
+ A custom center X of 189 means the center of the text view is 189 points from the left edge of whichever view owns the “Custom” coordinate space, which in our case is OuterView because we attach it in ContentView. This number matches the global position because OuterView runs edge to edge horizontally.
+ A custom center Y of 383 means the center of the text view is 383 points from the top edge of OuterView. This value is smaller than the global center Y because OuterView doesn’t extend into the safe area.
+ A local center X of 152 means the center of the text view is 152 points from the left edge of its direct container, which in this case is the GeometryReader.
+ A local center Y of 350 means the center of the text view is 350 points from the top edge of its direct container, which again is the GeometryReader.
 
- usage: set midAccountAndName as the alignment for your stack, then use alignmentGuide() to activate it on any views you want to align together. This is only a guide: it helps you align views along a single line, but doesn’t say how they should be aligned. This means you still need to provide the closure to alignmentGuide() that positions the views along that guide as you want.
+ Which coordinate space you want to use depends on what question you want to answer:
 
+ Want to know where this view is on the screen? Use the global space.
+ Want to know where this view is relative to its parent? Use the local space.
+ What to know where this view is relative to some other view? Use a custom space
  */
-extension VerticalAlignment {
-    enum MidAccountAndName: AlignmentID { //could be a struct
-        static func defaultValue(in d: ViewDimensions) -> CGFloat {
-            d[.top]
-        }
+struct ContentView: View {
+    var body: some View {
+        OuterView()
+            .background(.red)
+            .coordinateSpace(name: "Custom")
     }
-
-    static let midAccountAndName = VerticalAlignment(MidAccountAndName.self)
 }
 
 struct ContentView_Previews: PreviewProvider {
